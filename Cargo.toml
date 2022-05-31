@@ -1,0 +1,19 @@
+[package]
+name = "mjpeg"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+
+[dev-dependencies]
+hyper = "0.14"
+multipart-stream = "0.1"
+bytes = "1.0"
+futures = "0.3"
+http = "0.2"
+warp = "0.3"
+tokio = { version = "1", features = ["rt", "macros"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
