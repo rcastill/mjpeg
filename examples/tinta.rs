@@ -4,11 +4,10 @@
 //     "uff"
 // }
 
-use std::convert::Infallible;
 use std::time::Duration;
 
 use bytes::Bytes;
-use futures::{StreamExt, TryStreamExt};
+use futures::TryStreamExt;
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use http::{HeaderMap, HeaderValue, Request, Response};
 use hyper::service::{make_service_fn, service_fn};
@@ -37,20 +36,16 @@ async fn serve(
     headers.insert(CONTENT_TYPE, content_type);
     // headers.insert(CONTENT_LENGTH, content_length);
 
-    let stream = stream
-        .map_ok(move |body| {
-            let len = body.len();
-            let mut headers = headers.clone();
-            let content_length: HeaderValue = format!("{len}").parse().unwrap();
-            headers.insert(CONTENT_LENGTH, content_length);
-            let part = multipart_stream::Part {
-                headers,
-                body,
-            };
-            // let res: Result<_, Infallible> = Ok(part);
-            // res                   
-            part
-        });
+    let stream = stream.map_ok(move |body| {
+        let len = body.len();
+        let mut headers = headers.clone();
+        let content_length: HeaderValue = format!("{len}").parse().unwrap();
+        headers.insert(CONTENT_LENGTH, content_length);
+        let part = multipart_stream::Part { headers, body };
+        // let res: Result<_, Infallible> = Ok(part);
+        // res
+        part
+    });
 
     // let stream = futures::stream::repeat_with(move || {
     //     let part = multipart_stream::Part {
@@ -106,21 +101,24 @@ async fn main() -> Result<(), BoxedError> {
             let buf = buf.clone();
             tokio::time::sleep(Duration::from_secs(1)).await;
             match tx.send(buf) {
-                Ok(subscriptions) => eprintln!("Sent image to {subscriptions} connections"),
+                Ok(subscriptions) => {
+                    eprintln!("Sent image to {subscriptions} connections")
+                }
                 Err(_) => eprintln!("Nobody connected"),
             }
-
         }
     });
 
     let addr = ([127, 0, 0, 1], 3000).into();
     let make_svc = make_service_fn(move |_conn| {
         let tx = tx2.clone();
-        futures::future::ok::<_, std::convert::Infallible>(service_fn(move |req| {
-            let rx = tx.subscribe();
-            let stream = BroadcastStream::new(rx);
-            serve(req, stream)
-        }))
+        futures::future::ok::<_, std::convert::Infallible>(service_fn(
+            move |req| {
+                let rx = tx.subscribe();
+                let stream = BroadcastStream::new(rx);
+                serve(req, stream)
+            },
+        ))
     });
     let server = hyper::Server::bind(&addr).serve(make_svc);
     println!("Serving on http://{}", server.local_addr());
