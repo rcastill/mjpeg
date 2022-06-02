@@ -32,7 +32,7 @@ async fn main() -> Result<(), BoxedError> {
                     log::info!("Sent image to {subscriptions} connections")
                 }
                 Err(mjpeg::Error::MjpegDropped) => break,
-                Err(e) => log::error!("{e}"),
+                Err(e) => log::info!("{e}"),
             }
         }
     });
