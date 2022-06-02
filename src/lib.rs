@@ -15,16 +15,22 @@ use tokio::{
 };
 use tokio_stream::wrappers::BroadcastStream;
 
+pub mod simple_server;
+
 /// Mjpeg crate error
-#[derive(PartialEq, Debug)]
+#[derive(thiserror::Error, PartialEq, Debug)]
 pub enum Error {
     /// Only one streamer instance can exist for a given stream
+    #[error("Only one streamer instance can exist per streamid")]
     StreamerExists,
     /// Main Mjpeg instance was dropped
+    #[error("Primary mjpeg handle was dropped")]
     MjpegDropped,
     /// Stream has not been not created
+    #[error("Stream not instantiated")]
     StreamNotFound,
     /// Nobody is connected to stream
+    #[error("Nobody connected to stream")]
     NobodyConnected,
 }
 
