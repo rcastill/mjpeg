@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use bytes::Bytes;
 use mjpeg::{Mjpeg, StreamerBufSize};
+use tokio::time::sleep;
 
 type BoxedError = Box<dyn std::error::Error + Send + Sync>;
 
@@ -37,8 +38,16 @@ async fn main() -> Result<(), BoxedError> {
         }
     });
 
-    // run server at localhost:3000
-    mjpeg::simple_server::run(mjpeg.handle(), ([127, 0, 0, 1], 3000))
-        .await
-        .map_err(Into::into)
+    let shutdown_after_10s = sleep(Duration::from_secs(10));
+
+    // run server at localhost:PORT
+    const PORT: u16 = 3500;
+    log::info!("Starting server at http://localhost:{PORT}/tinta");
+    mjpeg::simple_server::run(
+        mjpeg.handle(),
+        ([127, 0, 0, 1], PORT),
+        shutdown_after_10s,
+    )
+    .await
+    .map_err(Into::into)
 }

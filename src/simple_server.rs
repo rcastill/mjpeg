@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 
-use futures::TryStreamExt;
+use futures::{Future, FutureExt, TryStreamExt};
 use http::{
     header::{InvalidHeaderValue, CONTENT_LENGTH, CONTENT_TYPE},
     HeaderMap, HeaderValue, Request, Response, StatusCode,
@@ -104,7 +104,11 @@ async fn serve(
         .body(hyper::Body::wrap_stream(stream))?)
 }
 
-pub async fn run<A>(handle: MjpegHandle, addr: A) -> Result<(), Error>
+pub fn run<A>(
+    handle: MjpegHandle,
+    addr: A,
+    graceful_shutdown: impl Future<Output = ()>,
+) -> impl Future<Output = Result<(), Error>>
 where
     A: Into<SocketAddr>,
 {
@@ -120,7 +124,10 @@ where
 
     // Start server
     // TODO: stop server if primary handle is dropped
-    let server = hyper::Server::bind(&addr.into()).serve(make_svc);
-    log::info!("Serving on http://{}", server.local_addr());
-    server.await.map_err(Error::from) // from hyper::Error
+    hyper::Server::bind(&addr.into())
+        .serve(make_svc)
+        .with_graceful_shutdown(graceful_shutdown)
+        .map(|res| res.map_err(Error::from))
+    // log::info!("Serving on http://{}", server.local_addr());
+    // server.await.map_err(Error::from) // from hyper::Error
 }
