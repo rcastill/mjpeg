@@ -47,7 +47,7 @@ async fn main() -> Result<(), BoxedError> {
         mjpeg.handle(),
         ([127, 0, 0, 1], PORT),
         shutdown_after_10s,
-    )
+    )?
     .await
     .map_err(Into::into)
 }

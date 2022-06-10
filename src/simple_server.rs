@@ -104,11 +104,24 @@ async fn serve(
         .body(hyper::Body::wrap_stream(stream))?)
 }
 
+/// Run simple http server
+///
+/// - `handle`: handle to Mjpeg state
+/// - `addr`: address to bind
+/// - `graceful_shutdown`: Future that must resolve in `()` to signal server
+///   shutdown
+///
+/// **Returns**
+///
+/// - `Ok(ServerFuture)`: Runs server async'ly
+///     - `ServerFuture::Output = Ok(())`: graceful shutdown
+///     - `ServerFuture::Output = Err(-)`: problems while serving
+/// - `Err(bind error)`: Error binding to `addr`
 pub fn run<A>(
     handle: MjpegHandle,
     addr: A,
     graceful_shutdown: impl Future<Output = ()>,
-) -> impl Future<Output = Result<(), Error>>
+) -> Result<impl Future<Output = Result<(), Error>>, Error>
 where
     A: Into<SocketAddr>,
 {
@@ -124,10 +137,10 @@ where
 
     // Start server
     // TODO: stop server if primary handle is dropped
-    hyper::Server::bind(&addr.into())
+    Ok(hyper::Server::try_bind(&addr.into())?
         .serve(make_svc)
         .with_graceful_shutdown(graceful_shutdown)
-        .map(|res| res.map_err(Error::from))
+        .map(|res| res.map_err(Error::from)))
     // log::info!("Serving on http://{}", server.local_addr());
     // server.await.map_err(Error::from) // from hyper::Error
 }
